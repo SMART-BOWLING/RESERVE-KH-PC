@@ -190,7 +190,15 @@
       color: var(--label-dark);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+    }
+    
+    /* Стиль для логотипа вместо иконки */
+    .site-logo {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      border-radius: 6px;
     }
     
     .nav-btn {
@@ -725,6 +733,7 @@
       .nav { padding: 0 16px; }
       .user-bar { padding: 4px 12px 4px 8px; }
       .user-email { display: none; }
+      .site-logo { width: 28px; height: 28px; }
     }
   </style>
 </head>
@@ -753,7 +762,11 @@
 
 <div id="content">
   <nav class="nav">
-    <span class="nav-title"><i class="fas fa-table-tennis"></i> LUCKY STRIKE · Бильярд</span>
+    <span class="nav-title">
+      <!-- Логотип сайта вместо иконки -->
+      <img src="https://i.postimg.cc/Z5Vszw0h/STATS-GOOGLE-1.png" alt="Logo" class="site-logo">
+      LUCKY STRIKE · Бильярд
+    </span>
     <div style="display: flex; gap: 12px; align-items: center;">
       <div id="userInfo" class="user-bar" style="display: none;">
         <img id="userPic" class="user-pic" src="" alt="">
@@ -1121,7 +1134,7 @@
         `;
       });
       
-      html += `</tbody></table>`;
+      html += `</tbody><table>`;
       container.innerHTML = html;
       
     } catch (error) {
