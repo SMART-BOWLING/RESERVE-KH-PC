@@ -721,7 +721,6 @@
 <body>
 
 <div id="login">
-  <!-- Полностью убраны все текстовые элементы: нет LUCKY STRIKE, нет Бильярдное ателье -->
   <div class="login-btn-container">
     <div id="g_id_onload" 
          data-client_id="328749588235-bgfeukqogpoq2ha65j7j0vk840hctiaq.apps.googleusercontent.com" 
@@ -827,6 +826,111 @@
   const GAS_URL = "https://script.google.com/macros/s/AKfycbwHABy-qFqGLW6qaD_sK2O8IuMBdxtRPUHzdB4Qb-BRUFAfog969UZ11Ba6xC0aAbH_/exec";
   
   let currentUser = null;
+  
+  // ==================== ПЕРИОДИЧЕСКАЯ ПРОВЕРКА ДОСТУПА ====================
+  let accessCheckInterval = null;
+  let isCheckingAccess = false;
+
+  async function verifyUserAccess() {
+    if (!currentUser || isCheckingAccess) return false;
+    
+    try {
+      isCheckingAccess = true;
+      console.log('🔄 Периодическая проверка доступа для:', currentUser.email);
+      
+      const checkResult = await checkEmailInSheet(currentUser.email);
+      
+      if (!checkResult.found) {
+        console.warn('⚠️ Доступ отозван для:', currentUser.email);
+        
+        // Показываем предупреждение перед выходом
+        const warningDiv = document.createElement('div');
+        warningDiv.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          left: auto;
+          background: #f44336;
+          color: white;
+          padding: 16px 24px;
+          border-radius: 8px;
+          z-index: 10000;
+          font-family: var(--font-system);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          animation: slideIn 0.3s ease;
+        `;
+        warningDiv.innerHTML = `
+          <strong>⚠️ Доступ отозван</strong><br>
+          Ваш email был удалён из списка разрешённых.<br>
+          Вы будете автоматически выведены из системы.
+        `;
+        document.body.appendChild(warningDiv);
+        
+        // Добавляем анимацию
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes slideIn {
+            from {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // Удаляем уведомление через 3 секунды
+        setTimeout(() => {
+          if (warningDiv && warningDiv.parentNode) {
+            warningDiv.remove();
+          }
+        }, 3000);
+        
+        // Принудительный выход
+        setTimeout(() => {
+          signOut();
+        }, 2000);
+        
+        return false;
+      } else {
+        console.log('✅ Доступ подтверждён для:', currentUser.email);
+        return true;
+      }
+    } catch (error) {
+      console.error('Ошибка при проверке доступа:', error);
+      // При ошибке сети не выходим из системы
+      return true;
+    } finally {
+      isCheckingAccess = false;
+    }
+  }
+
+  function startAccessMonitoring() {
+    // Останавливаем предыдущий интервал, если есть
+    if (accessCheckInterval) {
+      clearInterval(accessCheckInterval);
+    }
+    
+    // Запускаем проверку каждые 30 секунд
+    accessCheckInterval = setInterval(async () => {
+      if (currentUser) {
+        await verifyUserAccess();
+      }
+    }, 30000); // 30 секунд
+    
+    console.log('🟢 Мониторинг доступа запущен (проверка каждые 30 секунд)');
+  }
+
+  function stopAccessMonitoring() {
+    if (accessCheckInterval) {
+      clearInterval(accessCheckInterval);
+      accessCheckInterval = null;
+      console.log('🔴 Мониторинг доступа остановлен');
+    }
+  }
   
   // ==================== JSONP ФУНКЦИИ ДЛЯ ОБХОДА CORS ====================
   
@@ -1016,6 +1120,9 @@
     document.getElementById('login').style.display = 'none';
     document.getElementById('content').style.display = 'block';
     
+    // Запускаем мониторинг доступа
+    startAccessMonitoring();
+    
     const userInfo = document.getElementById('userInfo');
     const userPic = document.getElementById('userPic');
     const userEmailSpan = document.getElementById('userEmail');
@@ -1051,6 +1158,8 @@
   }
   
   function signOut() {
+    stopAccessMonitoring(); // Останавливаем проверки
+    
     localStorage.removeItem('billiardUserEmail');
     localStorage.removeItem('billiardUserName');
     localStorage.removeItem('billiardUserRole');
@@ -1062,6 +1171,12 @@
   // ==================== АДМИН-ПАНЕЛЬ (JSONP ВЕРСИЯ) ====================
   
   async function openAdminPanel() {
+    // Проверяем доступ перед открытием
+    if (currentUser) {
+      const hasAccess = await verifyUserAccess();
+      if (!hasAccess) return;
+    }
+    
     showLoad();
     document.getElementById("adminModal").classList.add("open");
     await loadUsersList();
@@ -1393,6 +1508,12 @@
   function closeBookModal(){ $("bookModal").classList.remove("open"); }
   
   async function submitTempBookings(){ 
+    // Проверяем доступ перед бронированием
+    if (currentUser) {
+      const hasAccess = await verifyUserAccess();
+      if (!hasAccess) return;
+    }
+    
     let name=$("nameInput").value.trim(); 
     if(!name) return alert("Введите имя"); 
     if(tempBookings.length===0) return; 
@@ -1703,6 +1824,14 @@
     $("tableDesktop").addEventListener("mousedown", onMouseDown);
     document.body.addEventListener("mousemove", onMouseMove);
     document.body.addEventListener("mouseup", onMouseUp);
+    
+    // Добавляем проверку при возвращении на вкладку
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && currentUser) {
+        console.log('👁️ Вкладка активна, проверяем доступ');
+        verifyUserAccess();
+      }
+    });
     
     ["bookModal","infoModal","adminModal","userFormModal"].forEach(id=>{ 
       $(id)?.addEventListener("click",e=>{ 
