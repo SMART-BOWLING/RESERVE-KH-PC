@@ -271,18 +271,18 @@
 
     .btn-book {
       height: 54px;
-      padding: 0 38px;
+      width: 54px; /* Квадратная кнопка */
+      padding: 0;
       background: var(--accent-blue);
       color: white;
       border: none;
       border-radius: 8px;
-      font-size: 17px;
-      font-weight: 590;
+      font-size: 20px;
       cursor: pointer;
       transition: all 0.2s ease;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
     }
     
     .btn-book:hover { 
@@ -290,20 +290,27 @@
       transform: scale(0.98); 
     }
     
+    .btn-book span {
+      display: none; /* Скрываем надпись "Новая бронь" */
+    }
+    
     .btn-drag-toggle {
       height: 54px;
-      padding: 0 32px;
+      width: 54px; /* Квадратная кнопка */
+      padding: 0;
       background: var(--surface-secondary);
       color: var(--label-secondary);
       border: 0.5px solid var(--border-strong);
       border-radius: 8px;
-      font-size: 16px;
-      font-weight: 500;
+      font-size: 20px;
       cursor: pointer;
-      white-space: nowrap;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+    }
+    
+    .btn-drag-toggle span {
+      display: none; /* Скрываем надпись "Режим перетяжки" */
     }
     
     .btn-drag-toggle.active { 
@@ -709,7 +716,7 @@
       .page { padding: 18px 16px 70px; }
       .ctrl { flex-direction: column; align-items: stretch; }
       .inline-temp-cards { margin-left: 0; justify-content: flex-start; }
-      .btn-book, .btn-drag-toggle { width: 100%; justify-content: center; }
+      .btn-book, .btn-drag-toggle { width: 100%; height: 54px; }
       .google-calendar-btn { justify-content: center; width: 100%; }
       .nav { padding: 0 16px; }
       .user-bar { padding: 4px 12px 4px 8px; }
@@ -764,8 +771,8 @@
         <span class="chevron-icon"><i class="fas fa-chevron-down"></i></span>
       </button>
       <input type="date" id="hiddenDatePicker" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" />
-      <button class="btn-book" onclick="openBookModal()"><i class="fas fa-plus-circle"></i> Новая бронь</button>
-      <button id="dragToggleBtn" class="btn-drag-toggle"><i class="fas fa-arrows-alt"></i> Режим перетяжки: ВЫКЛ</button>
+      <button class="btn-book" onclick="openBookModal()"><i class="fas fa-plus-circle"></i><span>Новая бронь</span></button>
+      <button id="dragToggleBtn" class="btn-drag-toggle"><i class="fas fa-arrows-alt"></i><span>Режим перетяжки: ВЫКЛ</span></button>
       <div id="inlineTempContainer" class="inline-temp-cards"></div>
     </div>
     <div class="grid-card"><div class="grid-scroll" id="gridScroll"><table id="tableDesktop"><thead id="dtHead"><tr><th class="corner">СТОЛ</th></tr></thead><tbody id="dtBody"></tbody></table><div id="slidersLayer"></div></div></div>
@@ -824,7 +831,7 @@
   const AUTH_SPREADSHEET_ID = '1zwi1CInK3NZ8YRAegRMAdjin6XPacVkAkFsjAiqVE0w';
   const AUTH_SHEET_NAME = '1';
   const API_KEY = 'AIzaSyAXL0Hsfxy-g-AgYhnivj4x9gCB2rrtF-0';
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbzu8-kB3loTYGtknY_DSAs5unLmMRc-v0oiqSLoNsSXRg8mmBPO_dh_JvnfAIxRVLMvMw/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycby40T2YgRoAO4Tu9FAChCe-q7deuLOVF0AKZoMvdfeDoDIyW5uiWkU-R-LBSwgl3NAu8g/exec";
   
   let currentUser = null;
   
@@ -1694,7 +1701,7 @@
     const toggleBtn = $("dragToggleBtn");
     toggleBtn.addEventListener("click", () => {
       dragModeEnabled = !dragModeEnabled;
-      toggleBtn.innerHTML = dragModeEnabled ? '<i class="fas fa-arrows-alt"></i> Режим перетяжки: ВКЛ' : '<i class="fas fa-arrows-alt"></i> Режим перетяжки: ВЫКЛ';
+      // Обновляем только иконку, текст скрыт через CSS
       toggleBtn.classList.toggle("active", dragModeEnabled);
       $("dragModeIndicator").style.display = dragModeEnabled ? "block" : "none";
       renderAllSliders();
