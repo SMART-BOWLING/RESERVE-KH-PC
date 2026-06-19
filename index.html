@@ -833,6 +833,9 @@
   const API_KEY = 'AIzaSyAXL0Hsfxy-g-AgYhnivj4x9gCB2rrtF-0';
   const GAS_URL = "https://script.google.com/macros/s/AKfycby40T2YgRoAO4Tu9FAChCe-q7deuLOVF0AKZoMvdfeDoDIyW5uiWkU-R-LBSwgl3NAu8g/exec";
   
+  // ==================== НОВАЯ КОНСТАНТА СРОКА СЕССИИ ====================
+  const SESSION_DURATION_DAYS = 2; // Сессия живет 2 дня
+  
   let currentUser = null;
   
   // ==================== JSONP ФУНКЦИИ ДЛЯ ОБХОДА CORS ====================
@@ -893,32 +896,69 @@
     });
   }
   
+  // ==================== ОБНОВЛЕННАЯ ФУНКЦИЯ КЕШИРОВАНИЯ ====================
   function cacheUser(email, name, role, picture) {
     try {
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + SESSION_DURATION_DAYS);
+      
       localStorage.setItem('billiardUserEmail', email);
       localStorage.setItem('billiardUserName', name);
       localStorage.setItem('billiardUserRole', role);
       localStorage.setItem('billiardUserPic', picture);
       localStorage.setItem('billiardUserLoggedIn', 'true');
+      localStorage.setItem('billiardUserExpiry', expiryDate.toISOString()); // ✅ ДОБАВЛЕНА ДАТА ИСТЕЧЕНИЯ
+      
+      console.log('User cached until:', expiryDate.toISOString());
     } catch (e) {
       console.warn('Failed to cache user:', e);
     }
   }
   
+  // ==================== ОБНОВЛЕННАЯ ФУНКЦИЯ ПОЛУЧЕНИЯ КЕША ====================
   function getCachedUser() {
     try {
       const isLoggedIn = localStorage.getItem('billiardUserLoggedIn') === 'true';
       const email = localStorage.getItem('billiardUserEmail');
-      const name = localStorage.getItem('billiardUserName');
-      const role = localStorage.getItem('billiardUserRole');
-      const picture = localStorage.getItem('billiardUserPic');
+      const expiryRaw = localStorage.getItem('billiardUserExpiry');
+      
+      // ✅ Проверка срока действия
+      if (expiryRaw) {
+        const expiryDate = new Date(expiryRaw);
+        const now = new Date();
+        if (expiryDate < now) {
+          // Сессия истекла - очищаем все данные
+          console.log('Session expired on:', expiryDate.toISOString());
+          clearStoredSession();
+          return null;
+        }
+        console.log('Session valid until:', expiryDate.toISOString());
+      } else {
+        // Нет даты истечения - возможно старая версия, принудительно выходим
+        console.log('No expiry date found, forcing logout');
+        clearStoredSession();
+        return null;
+      }
+      
       if (isLoggedIn && email) {
+        const name = localStorage.getItem('billiardUserName') || email.split('@')[0];
+        const role = localStorage.getItem('billiardUserRole') || '';
+        const picture = localStorage.getItem('billiardUserPic') || '';
         return { email: email.toLowerCase().trim(), name, role, picture };
       }
     } catch (e) {
       console.warn('Failed to get cached user:', e);
     }
     return null;
+  }
+  
+  function clearStoredSession() {
+    localStorage.removeItem('billiardUserEmail');
+    localStorage.removeItem('billiardUserName');
+    localStorage.removeItem('billiardUserRole');
+    localStorage.removeItem('billiardUserPic');
+    localStorage.removeItem('billiardUserLoggedIn');
+    localStorage.removeItem('billiardUserExpiry');
   }
   
   async function checkEmailInSheet(email) {
@@ -1058,11 +1098,7 @@
   }
   
   function signOut() {
-    localStorage.removeItem('billiardUserEmail');
-    localStorage.removeItem('billiardUserName');
-    localStorage.removeItem('billiardUserRole');
-    localStorage.removeItem('billiardUserPic');
-    localStorage.removeItem('billiardUserLoggedIn');
+    clearStoredSession();
     location.reload();
   }
   
@@ -1718,6 +1754,7 @@
     });
   }
   
+  // ==================== ОБНОВЛЕННАЯ ЗАГРУЗКА СТРАНИЦЫ ====================
   window.addEventListener('load', function() {
     const cachedUser = getCachedUser();
     if (cachedUser && cachedUser.email) {
